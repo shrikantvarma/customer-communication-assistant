@@ -47,7 +47,7 @@ The approach, in six decisions:
 - **"Never sends" is enforced by structure, not a setting.** Gmail has no "drafts but not send" permission. So the main app holds a read-only token and has no write operation at all. A separate approver, with no model in it, holds the only write token and writes a draft only when you click Approve. A test scans the code and fails on any send call or wider scope.
 - **The approver is walled off.** It runs as its own Unix user, keeps its own queue behind a two-call API, forgets the reply text once a request is decided, and accepts a click only from its own page, so a compromised app can't press Approve through your browser.
 - **One email, one paused run.** Each Gmail thread is a LangGraph thread. The graph pauses at review with `interrupt()` and resumes on your click with `Command(resume=…)`. Postgres checkpoints keep the run across restarts. Versions are append-only, which is what makes Undo safe.
-- **Private mail stays on a local model.** Triage and drafting run on Qwen served from my own GPU, through a LiteLLM gateway that traces every call to Langfuse. A cloud model can be picked per thread, and only that thread is sent to it.
+- **Customer mail stays on a private model.** Triage and drafting run on Qwen on a dedicated GPU server, through a LiteLLM gateway that traces every call to Langfuse. A cloud model can be picked per thread, and only that thread is sent to it.
 - **The app processing untrusted email is isolated.** It runs in its own VM as a service user, with an egress allowlist and one network path to the approver.
 
 | Part | Choice |
@@ -61,12 +61,12 @@ The approach, in six decisions:
 
 ## Outcome
 
-Running on my own Gmail since November 2026. The test of the hypothesis:
+In use since November 2026. How the hypothesis is measured:
 
 | Metric | What it tests | Result |
 |---|---|---|
 | Time from important email arriving to reply sent | A ready draft gets replies out sooner | Pending |
-| Share of drafts sent with only a sentence or two of correction | It understands what I mean and my tone | Pending |
+| Share of drafts sent with only a sentence or two of correction | It understands what the business means and its tone | Pending |
 | Follow-ups sent on time | Tracking stops threads going quiet | Pending |
 
 ## What I learned
@@ -75,8 +75,8 @@ Running on my own Gmail since November 2026. The test of the hypothesis:
 - **Let the model work out intent.** Suggested answers first sent on tap, with a switch for "this is an instruction, not an answer". "Wednesday, and mention I'm away Friday" broke it. Now the question, the pick and the typed text go together and the model sorts them out.
 - **Name actions by what the user gets.** "Send for approval" sounded like sending email. "Put in Gmail", with "Nothing is sent" underneath, says what happens.
 - **Permissions can't make a promise that scopes don't.** The draft permission can also send. Keeping that promise took a second service, not a flag.
-- **Network isolation doesn't stop the browser.** A compromised page could make my own browser press Approve. Pages that act need an origin check and a per-action token.
-- **Local models need guard rails in code.** Qwen's reasoning leaked into structured fields until output went through guided JSON with thinking turned off. Refine kept rewording my own sentences until the prompt said so plainly and a live check enforced it.
+- **Network isolation doesn't stop the browser.** A compromised page could make the owner's own browser press Approve. Pages that act need an origin check and a per-action token.
+- **Local models need guard rails in code.** Qwen's reasoning leaked into structured fields until output went through guided JSON with thinking turned off. Refine kept rewording the user's own sentences until the prompt said so plainly and a live check enforced it.
 - **Real Gmail is messier than the docs.** Sent drafts get new ids, the order of polling Inbox and Sent matters, and notes to self land in both. Each was a real bug.
 - **The agreed design is the spec.** Small differences from the prototype were waved through, one only so an old test would pass. Building against an interactive prototype fixed it.
 
