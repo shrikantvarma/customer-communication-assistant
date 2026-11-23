@@ -59,6 +59,16 @@ The approach, in six decisions:
 | Data | PostgreSQL |
 | Tests | 364 automated tests, including a fake Gmail that fails on any send |
 
+## Selected source
+
+The full codebase is private. Three files show the decisions above in code:
+
+| File | What it shows |
+|---|---|
+| [`source/graph.py`](source/graph.py) | The LangGraph workflow for one email thread: triage, draft, and a review step that pauses with `interrupt()` and resumes on the user's decision. Versions are append-only, so Undo never loses work. |
+| [`source/never_send_check.py`](source/never_send_check.py) | The gate that fails the build on any Gmail send call or any permission wider than read-only and drafts. |
+| [`source/approver_guard.py`](source/approver_guard.py) | How the approver accepts a click only from its own page: same-origin checks, a signed token per request, and no framing. |
+
 ## Outcome
 
 In use since November 2026. How the hypothesis is measured:
